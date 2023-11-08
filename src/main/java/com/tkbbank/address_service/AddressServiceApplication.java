@@ -9,12 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AddressServiceApplication {
 
-	@GetMapping("/")
-	String home() {
-		return "Spring is here!";
-	}
-
-	public static void main(String[] args) {
-		SpringApplication.run(AddressServiceApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(AddressServiceApplication.class, args);
+    }
 }
