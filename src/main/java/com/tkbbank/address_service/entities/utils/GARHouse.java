@@ -1,6 +1,7 @@
 package com.tkbbank.address_service.entities.utils;
 
-import jakarta.persistence.*;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,13 +10,13 @@ import lombok.Setter;
 @Setter
 public class GARHouse extends GARObject {
 
-    @Column(name = "house_num", length = 20)
+    @Column(name = "house_num", length = 50)
     private String houseNumber;
 
-    @Column(name = "add_num1", length = 20)
+    @Column(name = "add_num1", length = 50)
     private String additionalNumber1;
 
-    @Column(name = "add_num2", length = 20)
+    @Column(name = "add_num2", length = 50)
     private String additionalNumber2;
 
     @Column(name = "add_type1")

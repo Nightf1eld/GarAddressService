@@ -1,6 +1,9 @@
 package com.tkbbank.address_service.entities.utils;
 
-import jakarta.persistence.*;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,13 +20,13 @@ public class GARObject {
     private UUID id;
 
     @Column(name = "record_id")
-    private Integer recordId;
+    private Long recordId;
 
-    @Column(name = "record_type_cd")
+    @Column(name = "record_type_cd", length = 25)
     private String recordType;
 
     @Column(name = "object_id")
-    private Integer objectId;
+    private Long objectId;
 
     @Column(name = "object_guid")
     private UUID guid;
