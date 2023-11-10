@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface AddressRelationRepository extends JpaRepository<AddressRelation, UUID> {
     Optional<AddressRelation> findAddressRelationByGUID(String guid);
-    List<AddressRelation> findAllByTypeAndSortedDesc(String type);
+    List<AddressRelation> findAllByTypeAndOrderDesc(String type);
     Optional<AddressRelation> findAddressByFullPath(String path);
     Set<AddressRelation> findAllByPath(String pathPart); //по части пути
 }
