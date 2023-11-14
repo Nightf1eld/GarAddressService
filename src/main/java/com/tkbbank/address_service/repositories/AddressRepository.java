@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AddressRepository extends JpaRepository<Address, UUID> {
-    Optional<Address> getAddressByGUID(String guid);
+    Optional<Address> getAddressByGuid(UUID guid);
     List<Address> findAllByLevelOrderByName(Integer lvl);
-    List<Address> findAllByTypeAndOrderByName(String type);
+    List<Address> findAllByTypeOrderByName(String type);
 }

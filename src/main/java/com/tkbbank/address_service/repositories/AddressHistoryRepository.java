@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AddressHistoryRepository extends JpaRepository<HistoricalAddress, UUID> {
-    Optional<HistoricalAddress> getAddressByGUID(String guid);
+    Optional<HistoricalAddress> getAddressByGuid(UUID guid);
     List<HistoricalAddress> findAllByLevelOrderByName(Integer lvl);
-    List<HistoricalAddress> findAllByTypeAndOrderByName(String type);
+    List<HistoricalAddress> findAllByTypeOrderByName(String type);
 }
