@@ -23,7 +23,7 @@ public class Dictionary {
     @Column(name = "lic", length = 50)
     private String code;
 
-    @Column(name = "value", length = 250)
+    @Column(name = "val", length = 250)
     private String value;
 
     @Column(name = "description", length = 250)
