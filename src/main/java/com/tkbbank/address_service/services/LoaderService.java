@@ -8,6 +8,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.security.AnyTypePermission;
 import org.apache.commons.compress.archivers.zip.*;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
@@ -53,50 +54,20 @@ public class LoaderService {
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_ADDR_OBJ.getFileMatcher())) {
                     HashSet<Address> addressObjects = new HashSet<>();
-                    try {
-                        for (; ; ) {
-                            addressObjects.add((Address) objectInputStream.readObject());
-                            if (addressObjects.size() % batchSize == 0) {
-//                                addressRepository.saveAll(addressObjects);
-                                addressObjects.clear();
-                            }
-                        }
-                    } catch (EOFException e) {
-                        objectInputStream.close();
-                        inputStream.close();
-                    }
+                    insertEntitiesInBatch(objectInputStream, addressRepository, addressObjects);
+                    closeInputStream(inputStream);
                 }
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_ADM_HIERARCHY.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.AS_MUN_HIERARCHY.getFileMatcher())) {
                     HashSet<AddressRelation> addressRelations = new HashSet<>();
-                    try {
-                        for (; ; ) {
-                            addressRelations.add((AddressRelation) objectInputStream.readObject());
-                            if (addressRelations.size() % batchSize == 0) {
-//                                addressRelationRepository.saveAll(addressRelations);
-                                addressRelations.clear();
-                            }
-                        }
-                    } catch (EOFException e) {
-                        objectInputStream.close();
-                        inputStream.close();
-                    }
+                    insertEntitiesInBatch(objectInputStream, addressRelationRepository, addressRelations);
+                    closeInputStream(inputStream);
                 }
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_HOUSES.getFileMatcher())) {
                     HashSet<House> houses = new HashSet<>();
-                    try {
-                        for (; ; ) {
-                            houses.add((House) objectInputStream.readObject());
-                            if (houses.size() % batchSize == 0) {
-//                                houseRepository.saveAll(houses);
-                                houses.clear();
-                            }
-                        }
-                    } catch (EOFException e) {
-                        objectInputStream.close();
-                        inputStream.close();
-                    }
+                    insertEntitiesInBatch(objectInputStream, houseRepository, houses);
+                    closeInputStream(inputStream);
                 }
 
             }
@@ -112,6 +83,10 @@ public class LoaderService {
 
     private void closeZipFile() throws IOException {
         zipFile.close();
+    }
+
+    private void closeInputStream(InputStream inputStream) throws IOException {
+        inputStream.close();
     }
 
     public Set<Class> findAllClasses(String packageName) {
@@ -137,5 +112,26 @@ public class LoaderService {
         parserFromXMLtoObject.addPermission(AnyTypePermission.ANY);
         parserFromXMLtoObject.processAnnotations(annotations);
         parserFromXMLtoObject.ignoreUnknownElements();
+    }
+
+    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, JpaRepository repository, HashSet<T> entities) throws IOException, ClassNotFoundException {
+        try {
+            for (; ; ) {
+                entities.add((T) objectInputStream.readObject());
+                if (entities.size() % batchSize == 0) {
+                    saveAllAndFlushEntities(repository, entities);
+                }
+            }
+        } catch (EOFException e) {
+            if (entities.size() > 0) {
+                saveAllAndFlushEntities(repository, entities);
+            }
+            objectInputStream.close();
+        }
+    }
+
+    private <T> void saveAllAndFlushEntities(JpaRepository repository, HashSet<T> entities) {
+        repository.saveAllAndFlush(entities);
+        entities.clear();
     }
 }
