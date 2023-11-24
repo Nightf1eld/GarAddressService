@@ -13,13 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 
+import com.tkbbank.address_service.enums.EntitiesFileMatcher;
+import com.tkbbank.address_service.entities.utils.GARAddress;
+import com.tkbbank.address_service.entities.utils.GARRelation;
+import com.tkbbank.address_service.entities.utils.GARHouse;
 import com.tkbbank.address_service.repositories.AddressRepository;
 import com.tkbbank.address_service.repositories.AddressRelationRepository;
 import com.tkbbank.address_service.repositories.HouseRepository;
-import com.tkbbank.address_service.enums.EntitiesFileMatcher;
-import com.tkbbank.address_service.entities.Address;
-import com.tkbbank.address_service.entities.AddressRelation;
-import com.tkbbank.address_service.entities.House;
 
 @Service
 @RequiredArgsConstructor
@@ -53,20 +53,20 @@ public class LoaderService {
                 ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(inputStream);
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_ADDR_OBJ.getFileMatcher())) {
-                    HashSet<Address> addressObjects = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, addressRepository, addressObjects);
+                    HashSet<GARAddress> addressObjects = new HashSet<>();
+                    insertEntitiesInBatch(objectInputStream, addressObjects, addressRepository);
                     closeInputStream(inputStream);
                 }
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_ADM_HIERARCHY.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.AS_MUN_HIERARCHY.getFileMatcher())) {
-                    HashSet<AddressRelation> addressRelations = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, addressRelationRepository, addressRelations);
+                    HashSet<GARRelation> addressRelations = new HashSet<>();
+                    insertEntitiesInBatch(objectInputStream, addressRelations, addressRelationRepository);
                     closeInputStream(inputStream);
                 }
 
                 if (entry.getName().matches(EntitiesFileMatcher.AS_HOUSES.getFileMatcher())) {
-                    HashSet<House> houses = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, houseRepository, houses);
+                    HashSet<GARHouse> houses = new HashSet<>();
+                    insertEntitiesInBatch(objectInputStream, houses, houseRepository);
                     closeInputStream(inputStream);
                 }
 
@@ -114,7 +114,7 @@ public class LoaderService {
         parserFromXMLtoObject.ignoreUnknownElements();
     }
 
-    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, JpaRepository repository, HashSet<T> entities) throws IOException, ClassNotFoundException {
+    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<T> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
         try {
             for (; ; ) {
                 entities.add((T) objectInputStream.readObject());
