@@ -2,6 +2,7 @@ package com.tkbbank.address_service.entities.converters;
 
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.basic.IntConverter;
+import com.thoughtworks.xstream.converters.basic.LongConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.tkbbank.address_service.entities.Address;
 import com.tkbbank.address_service.entities.HistoricalAddress;
@@ -35,6 +36,9 @@ public class GARAddressConverter extends GARObjectConverter {
         address.setType(hierarchicalStreamReader.getAttribute("TYPENAME"));
         if (!checkEmpty(hierarchicalStreamReader, "LEVEL")) {
             address.setLevel((Integer) new IntConverter().fromString(hierarchicalStreamReader.getAttribute("LEVEL")));
+        }
+        if (!checkEmpty(hierarchicalStreamReader, "PREVID")) {
+            address.setParentObjectId((Long) new LongConverter().fromString(hierarchicalStreamReader.getAttribute("PREVID")));
         }
     }
 }

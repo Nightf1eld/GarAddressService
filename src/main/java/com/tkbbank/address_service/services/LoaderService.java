@@ -35,7 +35,7 @@ public class LoaderService {
     @Autowired
     private EntityManager entityManager;
 
-    private final GARObjectRepository GARObjectRepository;
+    private final GARObjectRepository garObjectRepository;
 
     private ZipFile zipFile;
     private Enumeration<ZipArchiveEntry> zipEntries;
@@ -57,7 +57,7 @@ public class LoaderService {
             if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher())) {
                 log.info("Process: " + entry.getName());
                 ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(new BufferedInputStream(zipFile.getInputStream(entry)));
-                insertEntitiesInBatch(objectInputStream, garObjects, GARObjectRepository);
+                insertEntitiesInBatch(objectInputStream, garObjects, garObjectRepository);
             }
         }
 
