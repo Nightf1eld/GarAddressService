@@ -5,24 +5,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
+import jakarta.persistence.EntityManager;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.compress.archivers.zip.*;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 
+import com.tkbbank.address_service.entities.utils.GARObject;
+import com.tkbbank.address_service.repositories.GARObjectRepository;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
-import com.tkbbank.address_service.entities.utils.GARAddress;
-import com.tkbbank.address_service.entities.utils.GARRelation;
-import com.tkbbank.address_service.entities.utils.GARHouse;
-import com.tkbbank.address_service.repositories.AddressRepository;
-import com.tkbbank.address_service.repositories.AddressRelationRepository;
-import com.tkbbank.address_service.repositories.HouseRepository;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class LoaderService {
 
     @Value("${file_path.gar_archive}")
@@ -31,49 +32,37 @@ public class LoaderService {
     @Value("${spring.jpa.properties.hibernate.jdbc.batch_size}")
     private Integer batchSize;
 
-    private final AddressRepository addressRepository;
-    private final AddressRelationRepository addressRelationRepository;
-    private final HouseRepository houseRepository;
+    @Autowired
+    private EntityManager entityManager;
+
+    private final GARObjectRepository GARObjectRepository;
 
     private ZipFile zipFile;
     private Enumeration<ZipArchiveEntry> zipEntries;
     private XStream parserFromXMLtoObject;
 
     public void processZipFile() throws IOException, ClassNotFoundException {
+        log.info("Start process zip file");
         openZipFile(garArchivePath);
 
-        Set<Class> allEntitiesClasses = findAllClasses("com.tkbbank.address_service.entities");
+        Set<Class> allEntitiesClasses = findAllClasses("com.tkbbank.address_service.entities.utils");
         Class[] allEntitiesClassesArray = allEntitiesClasses.toArray(new Class[0]);
-        createParserFromXMLtoObject(allEntitiesClassesArray);
+        parserFromXMLtoObject = createParserFromXMLtoObject(allEntitiesClassesArray);
+
+        HashSet<GARObject> garObjects = new HashSet<>();
+        ZipArchiveEntry entry;
 
         while (zipEntries.hasMoreElements()) {
-            ZipArchiveEntry entry = zipEntries.nextElement();
+            entry = zipEntries.nextElement();
             if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher())) {
-                InputStream inputStream = new BufferedInputStream(zipFile.getInputStream(entry));
-                ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(inputStream);
-
-                if (entry.getName().matches(EntitiesFileMatcher.AS_ADDR_OBJ.getFileMatcher())) {
-                    HashSet<GARAddress> addressObjects = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, addressObjects, addressRepository);
-                    closeInputStream(inputStream);
-                }
-
-                if (entry.getName().matches(EntitiesFileMatcher.AS_ADM_HIERARCHY.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.AS_MUN_HIERARCHY.getFileMatcher())) {
-                    HashSet<GARRelation> addressRelations = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, addressRelations, addressRelationRepository);
-                    closeInputStream(inputStream);
-                }
-
-                if (entry.getName().matches(EntitiesFileMatcher.AS_HOUSES.getFileMatcher())) {
-                    HashSet<GARHouse> houses = new HashSet<>();
-                    insertEntitiesInBatch(objectInputStream, houses, houseRepository);
-                    closeInputStream(inputStream);
-                }
-
+                log.info("Process: " + entry.getName());
+                ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(new BufferedInputStream(zipFile.getInputStream(entry)));
+                insertEntitiesInBatch(objectInputStream, garObjects, GARObjectRepository);
             }
         }
 
         closeZipFile();
+        log.info("End process zip file");
     }
 
     private void openZipFile(String filePath) throws IOException {
@@ -83,10 +72,6 @@ public class LoaderService {
 
     private void closeZipFile() throws IOException {
         zipFile.close();
-    }
-
-    private void closeInputStream(InputStream inputStream) throws IOException {
-        inputStream.close();
     }
 
     public Set<Class> findAllClasses(String packageName) {
@@ -107,17 +92,18 @@ public class LoaderService {
         return null;
     }
 
-    private void createParserFromXMLtoObject(Class[] annotations) {
-        parserFromXMLtoObject = new XStream();
-        parserFromXMLtoObject.addPermission(AnyTypePermission.ANY);
-        parserFromXMLtoObject.processAnnotations(annotations);
-        parserFromXMLtoObject.ignoreUnknownElements();
+    private XStream createParserFromXMLtoObject(Class[] annotations) {
+        XStream xStream = new XStream(new StaxDriver());
+        xStream.addPermission(AnyTypePermission.ANY);
+        xStream.processAnnotations(annotations);
+        xStream.ignoreUnknownElements();
+        return xStream;
     }
 
-    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<T> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
+    private void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<GARObject> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
         try {
             for (; ; ) {
-                entities.add((T) objectInputStream.readObject());
+                entities.add((GARObject) objectInputStream.readObject());
                 if (entities.size() % batchSize == 0) {
                     saveAllAndFlushEntities(repository, entities);
                 }
@@ -127,11 +113,14 @@ public class LoaderService {
                 saveAllAndFlushEntities(repository, entities);
             }
             objectInputStream.close();
+            entityManager.close();
+            entityManager.getEntityManagerFactory().getCache().evictAll();
         }
     }
 
-    private <T> void saveAllAndFlushEntities(JpaRepository repository, HashSet<T> entities) {
+    private void saveAllAndFlushEntities(JpaRepository repository, HashSet<GARObject> entities) {
         repository.saveAllAndFlush(entities);
+        entityManager.clear();
         entities.clear();
     }
 }
