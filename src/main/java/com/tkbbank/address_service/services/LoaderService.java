@@ -3,7 +3,7 @@ package com.tkbbank.address_service.services;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
-import com.tkbbank.address_service.entities.utils.GARObject;
+import com.tkbbank.address_service.entities.utils.GARDictionary;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
 import com.tkbbank.address_service.repositories.GARObjectRepository;
 import jakarta.persistence.EntityManager;
@@ -17,10 +17,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,22 +38,26 @@ public class LoaderService {
 
     private ZipFile zipFile;
     private Enumeration<ZipArchiveEntry> zipEntries;
+    private XStream parserFromXMLtoObject;
 
     public void processZipFile() throws IOException, ClassNotFoundException {
-        log.info("Start process zip file");
+        log.info("Start processing zip file");
         openZipFile(garArchivePath);
 
         Set<Class> allEntitiesClasses = findAllClasses("com.tkbbank.address_service.entities.utils");
         Class[] allEntitiesClassesArray = allEntitiesClasses.toArray(new Class[0]);
-        XStream parserFromXMLtoObject = createParserFromXMLtoObject(allEntitiesClassesArray);
+        parserFromXMLtoObject = createParserFromXMLtoObject(allEntitiesClassesArray);
 
-        HashSet<GARObject> garObjects = new HashSet<>();
+        HashSet<Object> garObjects = new HashSet<>();
         ZipArchiveEntry entry;
 
         while (zipEntries.hasMoreElements()) {
             entry = zipEntries.nextElement();
-            if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher())) {
-                log.info("Process: " + entry.getName());
+            if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
+                log.info("Processing: " + entry.getName());
+                if (entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
+                    setDictionaryAlias(entry.getName());
+                }
                 try (ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(new BufferedInputStream(zipFile.getInputStream(entry)))) {
                     insertEntitiesInBatch(objectInputStream, garObjects, garObjectRepository);
                 }
@@ -64,7 +65,7 @@ public class LoaderService {
         }
 
         closeZipFile();
-        log.info("End process zip file");
+        log.info("End processing zip file");
     }
 
     private void openZipFile(String filePath) throws IOException {
@@ -106,10 +107,18 @@ public class LoaderService {
         return xStream;
     }
 
-    private void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<GARObject> entities, JpaRepository<GARObject, UUID> repository) throws IOException, ClassNotFoundException {
+    private void setDictionaryAlias(String fileName) {
+        for (EntitiesFileMatcher matcher : EntitiesFileMatcher.values()) {
+            if (fileName.matches(matcher.getFileMatcher()) && matcher.getAliasMatcher() != null) {
+                parserFromXMLtoObject.alias(matcher.getAliasMatcher(), GARDictionary.class);
+            }
+        }
+    }
+
+    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<T> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
         try {
             for (; ; ) {
-                entities.add((GARObject) objectInputStream.readObject());
+                entities.add((T) objectInputStream.readObject());
                 if (entities.size() % batchSize == 0) {
                     saveAllAndFlushEntities(repository, entities);
                 }
@@ -121,7 +130,7 @@ public class LoaderService {
         }
     }
 
-    private void saveAllAndFlushEntities(JpaRepository<GARObject, UUID> repository, HashSet<GARObject> entities) {
+    private <T> void saveAllAndFlushEntities(JpaRepository repository, HashSet<T> entities) {
         repository.saveAllAndFlush(entities);
         entityManager.clear();
         entityManager.close();

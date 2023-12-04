@@ -20,7 +20,4 @@ public class GARRelation extends GARObject {
 
     @Column(name = "path")
     private String path;
-
-    @Column(name = "type_cd", length = 20)
-    private String type;
 }

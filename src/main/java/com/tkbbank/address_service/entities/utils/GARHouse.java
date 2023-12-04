@@ -8,6 +8,8 @@ import com.thoughtworks.xstream.annotations.XStreamConverter;
 import com.tkbbank.address_service.entities.converters.GARHouseConverter;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
+import java.util.UUID;
+
 @MappedSuperclass
 @Getter
 @Setter
@@ -32,4 +34,10 @@ public class GARHouse extends GARObject {
 
     @Column(name = "house_type")
     private Integer houseType;
+
+    @Column(name = "object_guid")
+    private UUID guid;
+
+    @Column(name = "actual_flg")
+    private Boolean isActual;
 }
