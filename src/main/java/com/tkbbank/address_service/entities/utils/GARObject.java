@@ -28,6 +28,6 @@ public class GARObject {
     @Column(name = "object_id")
     private Long objectId;
 
-    @Column(name = "object_guid")
-    private UUID guid;
+    @Column(name = "active_flg")
+    private Boolean isActive;
 }

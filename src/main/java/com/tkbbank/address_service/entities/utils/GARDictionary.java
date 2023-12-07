@@ -1,5 +1,7 @@
-package com.tkbbank.address_service.entities;
+package com.tkbbank.address_service.entities.utils;
 
+import com.thoughtworks.xstream.annotations.XStreamConverter;
+import com.tkbbank.address_service.entities.converters.GARDictionaryConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,8 +11,9 @@ import java.util.UUID;
 @Entity
 @Getter
 @Setter
+@XStreamConverter(GARDictionaryConverter.class)
 @Table(name = "s_lst_of_val", indexes = {})
-public class Dictionary {
+public class GARDictionary {
 
     @Id
     @GeneratedValue
