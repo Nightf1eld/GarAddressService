@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +38,9 @@ public class LoaderService {
     @Value("${spring.datasource.username}")
     private String userName;
 
+    @Value("${executors.thread_pool}")
+    private Integer threadPool;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -44,7 +50,7 @@ public class LoaderService {
     private Enumeration<ZipArchiveEntry> zipEntries;
     private XStream parserFromXMLtoObject;
 
-    public void processZipFile() throws IOException, ClassNotFoundException {
+    public void processZipFile() throws IOException {
         log.info("Start processing zip file");
         openZipFile(garArchivePath);
 
@@ -52,21 +58,35 @@ public class LoaderService {
         Class[] allEntitiesClassesArray = allEntitiesClasses.toArray(new Class[0]);
         parserFromXMLtoObject = createParserFromXMLtoObject(allEntitiesClassesArray);
 
-        HashSet<Object> garObjects = new HashSet<>();
-        ZipArchiveEntry entry;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadPool);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         while (zipEntries.hasMoreElements()) {
-            entry = zipEntries.nextElement();
-            if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
-                log.info("Processing: " + entry.getName());
-                if (entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
-                    setDictionaryAlias(entry.getName());
+            ZipArchiveEntry entry = zipEntries.nextElement();
+
+            Runnable runnableTask = () -> {
+                try {
+                    HashSet<Object> garObjects = new HashSet<>();
+                    if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
+                        log.info("Processing: " + entry.getName());
+                        if (entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
+                            setDictionaryAlias(entry.getName());
+                        }
+                        try (ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(new BufferedInputStream(zipFile.getInputStream(entry)))) {
+                            insertEntitiesInBatch(objectInputStream, garObjects, garObjectRepository);
+                        }
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
                 }
-                try (ObjectInputStream objectInputStream = parserFromXMLtoObject.createObjectInputStream(new BufferedInputStream(zipFile.getInputStream(entry)))) {
-                    insertEntitiesInBatch(objectInputStream, garObjects, garObjectRepository);
-                }
-            }
+            };
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(runnableTask, executorService);
+            futures.add(future);
         }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        executorService.shutdown();
 
         closeZipFile();
         log.info("End processing zip file");
