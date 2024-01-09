@@ -15,6 +15,7 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.util.*;
@@ -30,6 +31,9 @@ public class LoaderService {
 
     @Value("${spring.jpa.properties.hibernate.jdbc.batch_size}")
     private Integer batchSize;
+
+    @Value("${spring.datasource.username}")
+    private String userName;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -135,5 +139,22 @@ public class LoaderService {
         entityManager.clear();
         entityManager.close();
         entities.clear();
+    }
+
+    private List<String> getAllTablesInSchema(String userName) {
+        return entityManager.createNativeQuery("SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'").getResultList();
+    }
+
+    private void truncateTable(String tableName) {
+        entityManager.createNativeQuery("TRUNCATE TABLE " + tableName).executeUpdate();
+    }
+
+    @Transactional
+    public void truncateAllTables() {
+        List<String> tables = getAllTablesInSchema(userName);
+        tables.forEach(table -> {
+            log.info("Truncate table: " + table);
+            truncateTable(table);
+        });
     }
 }
