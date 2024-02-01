@@ -1,18 +1,20 @@
 package com.tkbbank.address_service.entities.utils;
 
-import com.thoughtworks.xstream.annotations.XStreamConverter;
-import com.tkbbank.address_service.entities.converters.GARDictionaryConverter;
-import jakarta.persistence.*;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
+import com.thoughtworks.xstream.annotations.XStreamConverter;
+import com.tkbbank.address_service.entities.converters.GARDictionaryConverter;
 
 import java.util.UUID;
 
-@Entity
+@MappedSuperclass
 @Getter
 @Setter
 @XStreamConverter(GARDictionaryConverter.class)
-@Table(name = "s_lst_of_val", indexes = {})
 public class GARDictionary {
 
     @Id

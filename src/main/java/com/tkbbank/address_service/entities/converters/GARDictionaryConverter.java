@@ -6,6 +6,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.basic.BooleanConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import com.tkbbank.address_service.entities.Dictionary;
 import com.tkbbank.address_service.entities.utils.GARDictionary;
 
 public class GARDictionaryConverter implements Converter {
@@ -16,7 +17,7 @@ public class GARDictionaryConverter implements Converter {
 
     @Override
     public Object unmarshal(HierarchicalStreamReader hierarchicalStreamReader, UnmarshallingContext unmarshallingContext) {
-        GARDictionary dictionary = new GARDictionary();
+        GARDictionary dictionary = new Dictionary();
         dictionaryMapper(hierarchicalStreamReader, dictionary);
         return dictionary;
     }

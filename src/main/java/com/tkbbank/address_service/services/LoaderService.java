@@ -66,7 +66,7 @@ public class LoaderService {
 
             Runnable runnableTask = () -> {
                 try {
-                    HashSet<Object> garObjects = new HashSet<>();
+                    List<Object> garObjects = new ArrayList<>();
                     if (entry.getName().matches(EntitiesFileMatcher.ALL_OBJECTS.getFileMatcher()) || entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
                         log.info("Processing: " + entry.getName());
                         if (entry.getName().matches(EntitiesFileMatcher.ALL_DICTIONARIES.getFileMatcher())) {
@@ -139,7 +139,7 @@ public class LoaderService {
         }
     }
 
-    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, HashSet<T> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
+    private <T> void insertEntitiesInBatch(ObjectInputStream objectInputStream, List<T> entities, JpaRepository repository) throws IOException, ClassNotFoundException {
         try {
             for (; ; ) {
                 entities.add((T) objectInputStream.readObject());
@@ -154,7 +154,8 @@ public class LoaderService {
         }
     }
 
-    private <T> void saveAllAndFlushEntities(JpaRepository repository, HashSet<T> entities) {
+    private <T> void saveAllAndFlushEntities(JpaRepository repository, List<T> entities) {
+        entities.removeIf(Objects::isNull);
         repository.saveAllAndFlush(entities);
         entityManager.clear();
         entityManager.close();
