@@ -10,7 +10,5 @@ import java.util.UUID;
 
 @Repository
 public interface HistoricalAddressRepository extends JpaRepository<HistoricalAddress, UUID> {
-    Optional<HistoricalAddress> getAddressByGuid(UUID guid);
-    List<HistoricalAddress> findAllByLevelOrderByName(Integer lvl);
-    List<HistoricalAddress> findAllByTypeOrderByName(String type);
+
 }
