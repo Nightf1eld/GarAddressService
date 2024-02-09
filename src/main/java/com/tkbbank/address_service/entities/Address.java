@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "s_addr", indexes = {})
+@Table(name = "s_addr")
 public class Address extends GARAddress {
 
 }

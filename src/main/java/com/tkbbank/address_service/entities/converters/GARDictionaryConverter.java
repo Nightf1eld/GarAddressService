@@ -45,6 +45,9 @@ public class GARDictionaryConverter implements Converter {
         if (checkEmpty(hierarchicalStreamReader, "DESC")) {
             dictionary.setDescription(hierarchicalStreamReader.getAttribute("DESC"));
         }
+        if (checkEmpty(hierarchicalStreamReader, "LEVEL")) {
+            dictionary.setLevel(hierarchicalStreamReader.getAttribute("LEVEL"));
+        }
         if (checkEmpty(hierarchicalStreamReader, "ISACTIVE")) {
             dictionary.setIsActive((Boolean) new BooleanConverter("true", "false", false).fromString(hierarchicalStreamReader.getAttribute("ISACTIVE")));
         }

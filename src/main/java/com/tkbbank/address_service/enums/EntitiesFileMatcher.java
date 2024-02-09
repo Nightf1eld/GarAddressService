@@ -1,5 +1,10 @@
 package com.tkbbank.address_service.enums;
 
+import lombok.RequiredArgsConstructor;
+import lombok.Getter;
+
+@RequiredArgsConstructor
+@Getter
 public enum EntitiesFileMatcher {
     ALL_OBJECTS("^(\\d*)\\D(AS_ADDR_OBJ|AS_ADM_HIERARCHY|AS_MUN_HIERARCHY|AS_HOUSES|AS_HOUSES_PARAMS)(\\D)(\\d)(.*)$", null),
     AS_ADDR_OBJ("^(\\d*)\\D(AS_ADDR_OBJ)(\\D)(\\d)(.*)$", null),
@@ -16,17 +21,4 @@ public enum EntitiesFileMatcher {
 
     private final String fileMatcher;
     private final String aliasMatcher;
-
-    EntitiesFileMatcher(String fileMatcher, String aliasMatcher) {
-        this.fileMatcher = fileMatcher;
-        this.aliasMatcher = aliasMatcher;
-    }
-
-    public String getFileMatcher() {
-        return fileMatcher;
-    }
-
-    public String getAliasMatcher() {
-        return aliasMatcher;
-    }
 }

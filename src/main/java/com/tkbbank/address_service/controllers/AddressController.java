@@ -26,6 +26,7 @@ public class AddressController {
                 case LOAD -> {
                     loaderService.truncateAllTables();
                     loaderService.processZipFile();
+                    loaderService.createAllIndexes();
                 }
             }
             response.setErrorCode(0);

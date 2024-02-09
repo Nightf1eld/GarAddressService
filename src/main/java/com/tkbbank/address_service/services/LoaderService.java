@@ -5,6 +5,7 @@ import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
 import com.tkbbank.address_service.entities.utils.GARDictionary;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
+import com.tkbbank.address_service.enums.TableIndexesMatcher;
 import com.tkbbank.address_service.repositories.GARObjectRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.hibernate.exception.SQLGrammarException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
@@ -22,7 +24,9 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -166,8 +170,16 @@ public class LoaderService {
         return entityManager.createNativeQuery("SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'").getResultList();
     }
 
+    private List<String> getAllColumnNamesInTable(String tableName) {
+        return entityManager.createNativeQuery("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+    }
+
     private void truncateTable(String tableName) {
         entityManager.createNativeQuery("TRUNCATE TABLE " + tableName).executeUpdate();
+    }
+
+    private void createIndex(String indexName, String tableName, String columnNames) {
+        entityManager.createNativeQuery("CREATE INDEX " + indexName + " ON " + tableName + "(" + columnNames + ")").executeUpdate();
     }
 
     @Transactional
@@ -176,6 +188,26 @@ public class LoaderService {
         tables.forEach(table -> {
             log.info("Truncate table: " + table);
             truncateTable(table);
+        });
+    }
+
+    @Transactional
+    public void createAllIndexes() {
+        Map<String, List<String>> schemaTableColumns = getAllTablesInSchema(userName).stream().collect(Collectors.toMap(table -> table, columns -> getAllColumnNamesInTable(columns)));
+        Map<String, List<String>> indexTableColumns = Stream.of(TableIndexesMatcher.values()).collect(Collectors.toMap(table -> table.name(), columns -> columns.getIndexMatcher()));
+
+        indexTableColumns.entrySet().stream().filter(indexKey -> schemaTableColumns.containsKey(indexKey.getKey().toUpperCase())).forEach(index -> {
+            AtomicInteger indexNumber = new AtomicInteger(1);
+            index.getValue().stream().forEach(indexColumn -> {
+                String indexName = "IDX_" + index.getKey() + "_" + indexNumber;
+                log.info("Create index " + indexName + " on " + index.getKey().toUpperCase() + "(" + indexColumn.toUpperCase() + ")");
+                try {
+                    createIndex(indexName, index.getKey(), indexColumn);
+                    indexNumber.getAndIncrement();
+                } catch (SQLGrammarException e) {
+                    e.printStackTrace();
+                }
+            });
         });
     }
 }
