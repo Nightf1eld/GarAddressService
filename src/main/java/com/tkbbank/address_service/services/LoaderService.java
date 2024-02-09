@@ -55,7 +55,6 @@ public class LoaderService {
     private XStream parserFromXMLtoObject;
 
     public void processZipFile() throws IOException {
-        log.info("Start processing zip file");
         openZipFile(garArchivePath);
 
         Set<Class> allEntitiesClasses = findAllClasses("com.tkbbank.address_service.entities.utils");
@@ -93,7 +92,6 @@ public class LoaderService {
         executorService.shutdown();
 
         closeZipFile();
-        log.info("End processing zip file");
     }
 
     private void openZipFile(String filePath) throws IOException {
@@ -174,6 +172,10 @@ public class LoaderService {
         return entityManager.createNativeQuery("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'").getResultList();
     }
 
+    private List<String> getAllIndexesInTable(String tableName) {
+        return entityManager.createNativeQuery("SELECT INDEX_NAME FROM ALL_INDEXES WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+    }
+
     private void truncateTable(String tableName) {
         entityManager.createNativeQuery("TRUNCATE TABLE " + tableName).executeUpdate();
     }
@@ -182,9 +184,14 @@ public class LoaderService {
         entityManager.createNativeQuery("CREATE INDEX " + indexName + " ON " + tableName + "(" + columnNames + ")").executeUpdate();
     }
 
+    private void dropIndex(String indexName) {
+        entityManager.createNativeQuery("DROP INDEX " + indexName);
+    }
+
     @Transactional
     public void truncateAllTables() {
         List<String> tables = getAllTablesInSchema(userName);
+
         tables.forEach(table -> {
             log.info("Truncate table: " + table);
             truncateTable(table);
@@ -200,13 +207,25 @@ public class LoaderService {
             AtomicInteger indexNumber = new AtomicInteger(1);
             index.getValue().stream().forEach(indexColumn -> {
                 String indexName = "IDX_" + index.getKey() + "_" + indexNumber;
-                log.info("Create index " + indexName + " on " + index.getKey().toUpperCase() + "(" + indexColumn.toUpperCase() + ")");
+                log.info("Create index: " + indexName);
                 try {
                     createIndex(indexName, index.getKey(), indexColumn);
                     indexNumber.getAndIncrement();
                 } catch (SQLGrammarException e) {
                     e.printStackTrace();
                 }
+            });
+        });
+    }
+
+    @Transactional
+    public void dropAllIndexes() {
+        List<String> tables = getAllTablesInSchema(userName);
+
+        tables.forEach(table -> {
+            getAllIndexesInTable(table).stream().filter(indexName -> indexName.contains("IDX_")).forEach(indexName -> {
+                log.info("Drop index: " + indexName);
+                dropIndex(indexName);
             });
         });
     }

@@ -4,6 +4,7 @@ import com.tkbbank.address_service.dto.requests.ManageRequest;
 import com.tkbbank.address_service.dto.responses.ManageResponse;
 import com.tkbbank.address_service.dto.utils.ManageCommand;
 import com.tkbbank.address_service.services.LoaderService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping(path = "/address_service")
 @CrossOrigin(originPatterns = "*")
+@Log4j2
 public class AddressController {
 
     @Autowired
@@ -24,9 +26,12 @@ public class AddressController {
         try {
             switch (ManageCommand.fromText(request.getCommand())) {
                 case LOAD -> {
+                    log.info("Start loading");
                     loaderService.truncateAllTables();
+                    loaderService.dropAllIndexes();
                     loaderService.processZipFile();
                     loaderService.createAllIndexes();
+                    log.info("End loading");
                 }
             }
             response.setErrorCode(0);
