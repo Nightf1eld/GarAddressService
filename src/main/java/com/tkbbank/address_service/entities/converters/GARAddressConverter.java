@@ -7,7 +7,6 @@ import com.thoughtworks.xstream.converters.basic.LongConverter;
 import com.thoughtworks.xstream.converters.basic.UUIDConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.tkbbank.address_service.entities.Address;
-import com.tkbbank.address_service.entities.HistoricalAddress;
 import com.tkbbank.address_service.entities.utils.GARAddress;
 
 import java.util.UUID;
@@ -17,15 +16,14 @@ public class GARAddressConverter extends GARObjectConverter {
     @Override
     public Object unmarshal(HierarchicalStreamReader hierarchicalStreamReader, UnmarshallingContext unmarshallingContext) {
         GARAddress actualAddress = new Address();
-        GARAddress historicalAddress = new HistoricalAddress();
 
         if (hierarchicalStreamReader.getAttribute("ISACTUAL").equals("1") && hierarchicalStreamReader.getAttribute("ISACTIVE").equals("1")) {
             addressMapper(hierarchicalStreamReader, actualAddress, "ADDR_OBJ");
-            return actualAddress;
         } else {
-            addressMapper(hierarchicalStreamReader, historicalAddress, "HIST_ADDR_OBJ");
-            return historicalAddress;
+            addressMapper(hierarchicalStreamReader, actualAddress, "HIST_ADDR_OBJ");
         }
+
+        return actualAddress;
     }
 
     @Override
@@ -42,7 +40,7 @@ public class GARAddressConverter extends GARObjectConverter {
             address.setLevel((Integer) new IntConverter().fromString(hierarchicalStreamReader.getAttribute("LEVEL")));
         }
         if (checkEmpty(hierarchicalStreamReader, "PREVID")) {
-            address.setParentObjectId((Long) new LongConverter().fromString(hierarchicalStreamReader.getAttribute("PREVID")));
+            address.setPrevRecordId((Long) new LongConverter().fromString(hierarchicalStreamReader.getAttribute("PREVID")));
         }
         if (checkEmpty(hierarchicalStreamReader, "OBJECTGUID")) {
             address.setGuid((UUID) new UUIDConverter().fromString(hierarchicalStreamReader.getAttribute("OBJECTGUID")));

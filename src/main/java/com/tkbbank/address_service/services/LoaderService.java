@@ -3,12 +3,16 @@ package com.tkbbank.address_service.services;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
+import com.tkbbank.address_service.dto.utils.ManageCommand;
 import com.tkbbank.address_service.entities.utils.GARDictionary;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
-import com.tkbbank.address_service.enums.TableIndexesMatcher;
+import com.tkbbank.address_service.enums.TableMatcher;
+import com.tkbbank.address_service.repositories.GARIdxAddressRepository;
 import com.tkbbank.address_service.repositories.GARObjectRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
@@ -17,7 +21,6 @@ import org.hibernate.exception.SQLGrammarException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.util.*;
@@ -45,10 +48,14 @@ public class LoaderService {
     @Value("${executors.thread_pool}")
     private Integer threadPool;
 
+    @PersistenceUnit
+    private EntityManagerFactory entityManagerFactory;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     private final GARObjectRepository garObjectRepository;
+    private final GARIdxAddressRepository garIdxAddressRepository;
 
     private ZipFile zipFile;
     private Enumeration<ZipArchiveEntry> zipEntries;
@@ -103,7 +110,7 @@ public class LoaderService {
         zipFile.close();
     }
 
-    public Set<Class> findAllClasses(String packageName) {
+    private Set<Class> findAllClasses(String packageName) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream(packageName.replaceAll("[.]", "/"))))) {
             return reader.lines()
                     .filter(line -> line.endsWith(".class"))
@@ -164,52 +171,74 @@ public class LoaderService {
         entities.clear();
     }
 
-    private List<String> getAllTablesInSchema(String userName) {
-        return entityManager.createNativeQuery("SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'").getResultList();
+    private List<String> getAllTablesInSchema(String userName, EntityManager em) {
+        return em.createNativeQuery("SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'").getResultList();
     }
 
-    private List<String> getAllColumnNamesInTable(String tableName) {
-        return entityManager.createNativeQuery("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+    private List<String> getAllColumnNamesInTable(String tableName, EntityManager em) {
+        return em.createNativeQuery("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'").getResultList();
     }
 
-    private List<String> getAllIndexesInTable(String tableName) {
-        return entityManager.createNativeQuery("SELECT INDEX_NAME FROM ALL_INDEXES WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+    private List<String> getAllIndexesInTable(String tableName, EntityManager em) {
+        return em.createNativeQuery("SELECT INDEX_NAME FROM ALL_INDEXES WHERE TABLE_NAME = '" + tableName + "'").getResultList();
     }
 
-    private void truncateTable(String tableName) {
-        entityManager.createNativeQuery("TRUNCATE TABLE " + tableName).executeUpdate();
+    private Map<String, List<String>> getSchemaTableColumns(EntityManager em) {
+        return getAllTablesInSchema(userName, em).stream().collect(Collectors.toMap(table -> table, columns -> getAllColumnNamesInTable(columns, em)));
     }
 
-    private void createIndex(String indexName, String tableName, String columnNames) {
-        entityManager.createNativeQuery("CREATE INDEX " + indexName + " ON " + tableName + "(" + columnNames + ")").executeUpdate();
+    private Map<String, List<String>> getSchemaTableIndexes(EntityManager em) {
+        return getAllTablesInSchema(userName, em).stream().collect(Collectors.toMap(table -> table, indexes -> getAllIndexesInTable(indexes, em)));
     }
 
-    private void dropIndex(String indexName) {
-        entityManager.createNativeQuery("DROP INDEX " + indexName);
+    private void truncateTable(String tableName, EntityManager em) {
+        try {
+            em.getTransaction().begin();
+            em.createNativeQuery("TRUNCATE TABLE " + tableName).executeUpdate();
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+        }
     }
 
-    @Transactional
-    public void truncateAllTables() {
-        List<String> tables = getAllTablesInSchema(userName);
+    private void createIndex(String indexName, String tableName, String columnNames, EntityManager em) {
+        try {
+            em.getTransaction().begin();
+            em.createNativeQuery("CREATE INDEX " + indexName + " ON " + tableName + "(" + columnNames + ")").executeUpdate();
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+        }
+    }
 
-        tables.forEach(table -> {
-            log.info("Truncate table: " + table);
-            truncateTable(table);
+    private void dropIndex(String indexName, EntityManager em) {
+        try {
+            em.getTransaction().begin();
+            em.createNativeQuery("DROP INDEX " + indexName).executeUpdate();
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            em.getTransaction().rollback();
+        }
+    }
+
+    private void truncateAllTables(EntityManager em) {
+        getSchemaTableColumns(em).entrySet().stream().forEach(table -> {
+            log.info("Truncate table: " + table.getKey());
+            truncateTable(table.getKey(), em);
         });
     }
 
-    @Transactional
-    public void createAllIndexes() {
-        Map<String, List<String>> schemaTableColumns = getAllTablesInSchema(userName).stream().collect(Collectors.toMap(table -> table, columns -> getAllColumnNamesInTable(columns)));
-        Map<String, List<String>> indexTableColumns = Stream.of(TableIndexesMatcher.values()).collect(Collectors.toMap(table -> table.name(), columns -> columns.getIndexMatcher()));
 
-        indexTableColumns.entrySet().stream().filter(indexKey -> schemaTableColumns.containsKey(indexKey.getKey().toUpperCase())).forEach(index -> {
+    private void createAllIndexes(EntityManager em, String tableQueue) {
+        Map<String, List<String>> indexTableColumns = Stream.of(TableMatcher.values()).filter(queue -> queue.getTableQueue().equals(tableQueue)).collect(Collectors.toMap(table -> table.name(), columns -> columns.getIndexMatcher()));
+
+        indexTableColumns.entrySet().stream().filter(indexKey -> getSchemaTableColumns(em).containsKey(indexKey.getKey().toUpperCase())).forEach(index -> {
             AtomicInteger indexNumber = new AtomicInteger(1);
             index.getValue().stream().forEach(indexColumn -> {
                 String indexName = "IDX_" + index.getKey() + "_" + indexNumber;
                 log.info("Create index: " + indexName);
                 try {
-                    createIndex(indexName, index.getKey(), indexColumn);
+                    createIndex(indexName, index.getKey(), indexColumn, em);
                     indexNumber.getAndIncrement();
                 } catch (SQLGrammarException e) {
                     e.printStackTrace();
@@ -218,15 +247,68 @@ public class LoaderService {
         });
     }
 
-    @Transactional
-    public void dropAllIndexes() {
-        List<String> tables = getAllTablesInSchema(userName);
-
-        tables.forEach(table -> {
-            getAllIndexesInTable(table).stream().filter(indexName -> indexName.contains("IDX_")).forEach(indexName -> {
+    private void dropAllIndexes(EntityManager em) {
+        getSchemaTableIndexes(em).entrySet().stream().forEach(table -> {
+            table.getValue().stream().filter(indexName -> indexName.contains("IDX_")).forEach(indexName -> {
                 log.info("Drop index: " + indexName);
-                dropIndex(indexName);
+                dropIndex(indexName, em);
             });
         });
+    }
+
+    public void processDataTables(String command) {
+        EntityManager em = entityManagerFactory.createEntityManager();
+
+        switch (ManageCommand.fromText(command)) {
+            case TRUNCATE -> {
+                truncateAllTables(em);
+            }
+            case CREATE_INDEX -> {
+                createAllIndexes(em, "1");
+            }
+            case DROP_INDEX -> {
+                dropAllIndexes(em);
+            }
+        }
+
+        em.close();
+    }
+
+    public void processIdxTables(String command) {
+        switch (ManageCommand.fromText(command)) {
+            case CREATE_INDEX -> {
+                EntityManager em = entityManagerFactory.createEntityManager();
+                createAllIndexes(em, "2");
+                em.close();
+            }
+            case INSERT, UPDATE -> {
+                ExecutorService executorService = Executors.newFixedThreadPool(threadPool);
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+                Stream.of(TableMatcher.values()).filter(table -> table.name().contains("IDX")).forEach(table -> {
+                    Runnable runnableTask = () -> {
+                        switch (ManageCommand.fromText(command)) {
+                            case INSERT -> {
+                                for (String insertParam : table.getInsertParams()) {
+                                    List<String> params = Arrays.asList(insertParam.split(", "));
+                                    log.info("Insert into: " + table.name() + "(" + params.get(0) + ", " + params.get(1) + ", " + params.get(2) + ")");
+                                    garIdxAddressRepository.idxAddressInsert(params.get(0), params.get(1), params.get(2), table.name(), batchSize);
+                                }
+                            }
+                            case UPDATE -> {
+                                log.info("Update: " + table.name());
+                                garIdxAddressRepository.idxAddressUpdate(table.name(), batchSize);
+                            }
+                        }
+                    };
+
+                    CompletableFuture<Void> future = CompletableFuture.runAsync(runnableTask, executorService);
+                    futures.add(future);
+                });
+
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                executorService.shutdown();
+            }
+        }
     }
 }

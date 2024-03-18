@@ -26,8 +26,8 @@ public class GARAddress extends GARObject {
     @Column(name = "level_cd")
     private Integer level;
 
-    @Column(name = "par_object_id")
-    private Long parentObjectId;
+    @Column(name = "prev_record_id")
+    private Long prevRecordId;
 
     @Column(name = "object_guid")
     private UUID guid;

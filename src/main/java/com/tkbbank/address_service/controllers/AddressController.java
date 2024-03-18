@@ -27,10 +27,13 @@ public class AddressController {
             switch (ManageCommand.fromText(request.getCommand())) {
                 case LOAD -> {
                     log.info("Start loading");
-                    loaderService.truncateAllTables();
-                    loaderService.dropAllIndexes();
+                    loaderService.processDataTables("TRUNCATE");
+                    loaderService.processDataTables("DROP_INDEX");
                     loaderService.processZipFile();
-                    loaderService.createAllIndexes();
+                    loaderService.processDataTables("CREATE_INDEX");
+                    loaderService.processIdxTables("CREATE_INDEX");
+                    loaderService.processIdxTables("INSERT");
+                    loaderService.processIdxTables("UPDATE");
                     log.info("End loading");
                 }
             }
