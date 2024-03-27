@@ -42,4 +42,13 @@ public class GARIdxAddress {
 
     @Column(name = "path")
     private String path;
+
+    @Column(name = "addr_active_flg")
+    private Boolean isActiveAddr;
+
+    @Column(name = "addr_actual_flg")
+    private Boolean isActualAddr;
+
+    @Column(name = "rel_active_flg")
+    private Boolean isActiveRel;
 }

@@ -290,7 +290,7 @@ public class LoaderService {
                         switch (ManageCommand.fromText(command)) {
                             case INSERT -> {
                                 for (String insertParam : table.getInsertParams()) {
-                                    List<String> params = Arrays.asList(insertParam.split(", "));
+                                    List<String> params = Arrays.asList(insertParam.split("; "));
                                     log.info("Insert into: " + table.name() + "(" + params.get(0) + ", " + params.get(1) + ", " + params.get(2) + ")");
                                     garIdxAddressRepository.idxAddressInsert(params.get(0), params.get(1), params.get(2), table.name(), batchSize);
                                 }
