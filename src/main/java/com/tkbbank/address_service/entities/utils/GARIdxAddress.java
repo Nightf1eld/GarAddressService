@@ -43,6 +43,9 @@ public class GARIdxAddress {
     @Column(name = "path")
     private String path;
 
+    @Column(name = "region_object_id")
+    private Long regionObjectId;
+
     @Column(name = "addr_active_flg")
     private Boolean isActiveAddr;
 
