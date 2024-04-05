@@ -35,7 +35,7 @@ public class GARDictionary {
     private String description;
 
     @Column(name = "level_cd", length = 10)
-    private String level;
+    private Integer level;
 
     @Column(name = "active_flg")
     private Boolean isActive;
