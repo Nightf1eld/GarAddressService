@@ -63,14 +63,14 @@ public class AddressController {
         return response;
     }
 
-    @GetMapping(path = "/regions")
+    @GetMapping(path = "/regions", produces = "application/json;charset=utf-8")
     public List<AddressDto> getRegions() {
         List<Address> regions = addressService.getRegions();
         return regions.stream().map(address -> modelMapper.map(address, AddressDto.class)).peek(addressDto -> addressDto.setNameType(addressDto.getName() + " " + addressDto.getType())).collect(Collectors.toList());
     }
 
-    @PostMapping(path = "/suggestions")
-    public List<GARIdxAddressDto> getSuggestions(@RequestBody SuggestionRequest request){
+    @PostMapping(path = "/suggestions", consumes = "application/json;charset=utf-8", produces = "application/json;charset=utf-8")
+    public List<GARIdxAddressDto> getSuggestions(@RequestBody SuggestionRequest request) {
         List<? extends GARIdxAddress> suggestions = addressService.getSuggestions(request.getRegionObjectId(), request.getNamePart());
         return suggestions.stream().map(address -> modelMapper.map(address, GARIdxAddressDto.class)).collect(Collectors.toList());
     }
