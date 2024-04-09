@@ -18,6 +18,9 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.hibernate.exception.SQLGrammarException;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.massindexing.MassIndexer;
+import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
@@ -310,5 +313,13 @@ public class LoaderService {
                 executorService.shutdown();
             }
         }
+    }
+
+    public void indexEntities() throws InterruptedException {
+        EntityManager em = entityManagerFactory.createEntityManager();
+        SearchSession searchSession = Search.session(em);
+        MassIndexer indexer = searchSession.massIndexer();
+        indexer.startAndWait();
+        em.close();
     }
 }

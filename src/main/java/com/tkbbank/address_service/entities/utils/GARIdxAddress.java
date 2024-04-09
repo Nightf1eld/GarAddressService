@@ -6,6 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 
 import java.util.UUID;
 
@@ -28,6 +30,7 @@ public class GARIdxAddress {
     @Column(name = "object_guid")
     private UUID guid;
 
+    @FullTextField
     @Column(name = "name", length = 500)
     private String name;
 
@@ -37,12 +40,14 @@ public class GARIdxAddress {
     @Column(name = "level_cd")
     private Integer level;
 
+    @FullTextField
     @Column(name = "full_name", length = 2000)
     private String fullName;
 
     @Column(name = "path")
     private String path;
 
+    @GenericField
     @Column(name = "region_object_id")
     private Long regionObjectId;
 

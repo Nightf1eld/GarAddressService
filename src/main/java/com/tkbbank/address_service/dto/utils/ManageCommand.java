@@ -8,7 +8,8 @@ public enum ManageCommand {
     UPDATE("update"),
     TRUNCATE("truncate"),
     CREATE_INDEX("create_index"),
-    DROP_INDEX("drop_index");
+    DROP_INDEX("drop_index"),
+    INDEX_ENTITIES("index_entities");
 
     private final String text;
 

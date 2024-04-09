@@ -44,7 +44,13 @@ public class AddressController {
                     loaderService.processIdxTables("CREATE_INDEX");
                     loaderService.processIdxTables("INSERT");
                     loaderService.processIdxTables("UPDATE");
+                    loaderService.indexEntities();
                     log.info("End loading");
+                }
+                case INDEX_ENTITIES -> {
+                    log.info("Start index entities");
+                    loaderService.indexEntities();
+                    log.info("End index entities");
                 }
             }
             response.setErrorCode(0);
