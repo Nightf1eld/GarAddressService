@@ -10,7 +10,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceUnit;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.stereotype.Service;
@@ -36,16 +35,17 @@ public class AddressService {
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         SearchSession searchSession = Search.session(entityManager);
 
-        SearchResult<IdxAddressAdm> result = searchSession.search(IdxAddressAdm.class)
+        List<? extends GARIdxAddress> suggestions = searchSession.search(IdxAddressAdm.class)
                 .where(f -> f.and(
-                        f.match().field("regionObjectId").matching(regionObjectId),
-                        f.or(
-                                f.phrase().field("fullName").matching(namePart).slop(3),
-                                f.regexp().field("name").matching(namePart + ".*"))
+                        f.match()
+                                .field("regionObjectId")
+                                .matching(regionObjectId),
+                        f.match()
+                                .field("edgeNGramMin3Max30_fullName")
+                                .matching(namePart)
                 ))
-                .fetch(10);
+                .fetchHits(10);
 
-        List<? extends GARIdxAddress> suggestions = result.hits();
         return suggestions;
     }
 }

@@ -30,7 +30,6 @@ public class GARIdxAddress {
     @Column(name = "object_guid")
     private UUID guid;
 
-    @FullTextField
     @Column(name = "name", length = 500)
     private String name;
 
@@ -40,7 +39,7 @@ public class GARIdxAddress {
     @Column(name = "level_cd")
     private Integer level;
 
-    @FullTextField
+    @FullTextField(name = "edgeNGramMin3Max30_fullName", analyzer = "edgeNGramMin3Max30_analyzer")
     @Column(name = "full_name", length = 2000)
     private String fullName;
 

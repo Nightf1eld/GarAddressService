@@ -4,6 +4,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
 import com.tkbbank.address_service.dto.utils.ManageCommand;
+import com.tkbbank.address_service.entities.IdxAddressAdm;
 import com.tkbbank.address_service.entities.utils.GARDictionary;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
 import com.tkbbank.address_service.enums.TableMatcher;
@@ -315,11 +316,31 @@ public class LoaderService {
         }
     }
 
-    public void indexEntities() throws InterruptedException {
+    public void indexEntities(boolean async) {
         EntityManager em = entityManagerFactory.createEntityManager();
         SearchSession searchSession = Search.session(em);
-        MassIndexer indexer = searchSession.massIndexer();
-        indexer.startAndWait();
-        em.close();
+
+        if (async) {
+            searchSession.massIndexer()
+                    .start()
+                    .thenRun(() -> {
+                        log.info("Mass indexing succeeded!");
+                        em.close();
+                    })
+                    .exceptionally(throwable -> {
+                        log.error("Mass indexing failed!", throwable);
+                        em.close();
+                        return null;
+                    });
+        } else {
+            MassIndexer indexer = searchSession.massIndexer();
+            try {
+                indexer.startAndWait();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                em.close();
+            }
+        }
     }
 }
