@@ -32,19 +32,23 @@ public class AddressService {
     }
 
     public List<? extends GARIdxAddress> getSuggestions(Long regionObjectId, String namePart) {
-        EntityManager entityManager = entityManagerFactory.createEntityManager();
-        SearchSession searchSession = Search.session(entityManager);
 
-        List<? extends GARIdxAddress> suggestions = searchSession.search(IdxAddressAdm.class)
-                .where(f -> f.and(
-                        f.match()
-                                .field("regionObjectId")
-                                .matching(regionObjectId),
-                        f.match()
-                                .field("edgeNGramMin3Max30_fullName")
-                                .matching(namePart)
-                ))
-                .fetchHits(10);
+        List<? extends GARIdxAddress> suggestions;
+
+        try (EntityManager entityManager = entityManagerFactory.createEntityManager()) {
+            SearchSession searchSession = Search.session(entityManager);
+
+            suggestions = searchSession.search(IdxAddressAdm.class)
+                    .where(f -> f.and(
+                            f.match()
+                                    .field("regionObjectId")
+                                    .matching(regionObjectId),
+                            f.match()
+                                    .field("edgeNGramMin3Max30_fullName")
+                                    .matching(namePart)
+                    ))
+                    .fetchHits(10);
+        }
 
         return suggestions;
     }
