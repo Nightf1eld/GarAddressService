@@ -15,15 +15,15 @@ public class GARAddressConverter extends GARObjectConverter {
 
     @Override
     public Object unmarshal(HierarchicalStreamReader hierarchicalStreamReader, UnmarshallingContext unmarshallingContext) {
-        GARAddress actualAddress = new Address();
+        GARAddress address = new Address();
 
         if (hierarchicalStreamReader.getAttribute("ISACTUAL").equals("1") && hierarchicalStreamReader.getAttribute("ISACTIVE").equals("1")) {
-            addressMapper(hierarchicalStreamReader, actualAddress, "ADDR_OBJ");
+            addressMapper(hierarchicalStreamReader, address, "ADDR_OBJ");
         } else {
-            addressMapper(hierarchicalStreamReader, actualAddress, "HIST_ADDR_OBJ");
+            addressMapper(hierarchicalStreamReader, address, "HIST_ADDR_OBJ");
         }
 
-        return actualAddress;
+        return address;
     }
 
     @Override

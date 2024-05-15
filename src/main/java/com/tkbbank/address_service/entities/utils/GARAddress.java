@@ -4,6 +4,8 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import com.thoughtworks.xstream.annotations.XStreamConverter;
 import com.tkbbank.address_service.entities.converters.GARAddressConverter;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
@@ -13,6 +15,8 @@ import java.util.UUID;
 @MappedSuperclass
 @Getter
 @Setter
+@NoArgsConstructor
+@SuperBuilder
 @XStreamConverter(GARAddressConverter.class)
 @XStreamAlias("OBJECT")
 public class GARAddress extends GARObject {

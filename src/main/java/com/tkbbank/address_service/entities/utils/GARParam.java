@@ -15,7 +15,7 @@ import lombok.Setter;
 @XStreamAlias("PARAM")
 public class GARParam extends GARObject {
 
-    @Column(name = "value")
+    @Column(name = "val")
     private String value;
 
     @Column(name = "type_id")

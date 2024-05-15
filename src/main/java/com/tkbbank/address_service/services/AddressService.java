@@ -27,8 +27,9 @@ public class AddressService {
     private EntityManagerFactory entityManagerFactory;
 
     public List<Address> getRegions() {
+        String defaultAddressLevel = "1";
         Dictionary subject = dictionaryRepository.findAllByType("OBJECTLEVEL").stream().filter(dictionary -> dictionary.getValue().equals("Субъект РФ") && dictionary.getIsActive()).findAny().orElse(null);
-        return addressRepository.findAllByLevelAndIsActiveOrderByName(Integer.parseInt(subject.getCode()), true);
+        return addressRepository.findAllByLevelAndIsActiveOrderByName(Integer.parseInt(subject != null ? subject.getCode() : defaultAddressLevel), true);
     }
 
     public List<? extends GARIdxAddress> getSuggestions(Long regionObjectId, String namePart) {
@@ -48,6 +49,24 @@ public class AddressService {
                                     .matching(namePart)
                     ))
                     .fetchHits(10);
+        }
+
+        return suggestions;
+    }
+
+    public List<? extends GARIdxAddress> getSuggestions(Long regionObjectId) {
+
+        List<? extends GARIdxAddress> suggestions;
+
+        try (EntityManager entityManager = entityManagerFactory.createEntityManager()) {
+            SearchSession searchSession = Search.session(entityManager);
+
+            suggestions = searchSession.search(IdxAddressAdm.class)
+                    .where(f -> f.match()
+                            .field("regionObjectId")
+                            .matching(regionObjectId)
+                    )
+                    .fetchAllHits();
         }
 
         return suggestions;

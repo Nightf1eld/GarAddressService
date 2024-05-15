@@ -4,7 +4,6 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 import com.thoughtworks.xstream.security.AnyTypePermission;
 import com.tkbbank.address_service.dto.utils.ManageCommand;
-import com.tkbbank.address_service.entities.IdxAddressAdm;
 import com.tkbbank.address_service.entities.utils.GARDictionary;
 import com.tkbbank.address_service.enums.EntitiesFileMatcher;
 import com.tkbbank.address_service.enums.TableMatcher;
@@ -48,6 +47,9 @@ public class LoaderService {
 
     @Value("${spring.datasource.username}")
     private String userName;
+
+    @Value("${spring.datasource.url}")
+    private String connectionUrl;
 
     @Value("${executors.thread_pool}")
     private Integer threadPool;
@@ -176,15 +178,39 @@ public class LoaderService {
     }
 
     private List<String> getAllTablesInSchema(String userName, EntityManager em) {
-        return em.createNativeQuery("SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'").getResultList();
+        String query = "";
+
+        if (connectionUrl.toUpperCase().startsWith("JDBC:H2")) {
+            query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'";
+        } else {
+            query = "SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '" + userName + "'";
+        }
+
+        return em.createNativeQuery(query).getResultList();
     }
 
     private List<String> getAllColumnNamesInTable(String tableName, EntityManager em) {
-        return em.createNativeQuery("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+        String query = "";
+
+        if (connectionUrl.toUpperCase().startsWith("JDBC:H2")) {
+            query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "'";
+        } else {
+            query = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName + "'";
+        }
+
+        return em.createNativeQuery(query).getResultList();
     }
 
     private List<String> getAllIndexesInTable(String tableName, EntityManager em) {
-        return em.createNativeQuery("SELECT INDEX_NAME FROM ALL_INDEXES WHERE TABLE_NAME = '" + tableName + "'").getResultList();
+        String query = "";
+
+        if (connectionUrl.toUpperCase().startsWith("JDBC:H2")) {
+            query = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME = '" + tableName + "'";
+        } else {
+            query = "SELECT INDEX_NAME FROM ALL_INDEXES WHERE TABLE_NAME = '" + tableName + "'";
+        }
+
+        return em.createNativeQuery(query).getResultList();
     }
 
     private Map<String, List<String>> getSchemaTableColumns(EntityManager em) {
