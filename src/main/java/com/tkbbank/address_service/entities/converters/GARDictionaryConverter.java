@@ -4,6 +4,7 @@ import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.basic.BooleanConverter;
+import com.thoughtworks.xstream.converters.basic.IntConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.tkbbank.address_service.entities.Dictionary;
@@ -44,6 +45,9 @@ public class GARDictionaryConverter implements Converter {
         }
         if (checkEmpty(hierarchicalStreamReader, "DESC")) {
             dictionary.setDescription(hierarchicalStreamReader.getAttribute("DESC"));
+        }
+        if (checkEmpty(hierarchicalStreamReader, "LEVEL")) {
+            dictionary.setLevel((Integer) new IntConverter().fromString(hierarchicalStreamReader.getAttribute("LEVEL")));
         }
         if (checkEmpty(hierarchicalStreamReader, "ISACTIVE")) {
             dictionary.setIsActive((Boolean) new BooleanConverter("true", "false", false).fromString(hierarchicalStreamReader.getAttribute("ISACTIVE")));

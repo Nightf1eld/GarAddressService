@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "s_house_param", indexes = {})
+@Table(name = "s_house_param")
 public class HouseParam extends GARParam {
 
 }

@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "s_addr_adm_rel_hist", indexes = {})
+@Table(name = "s_addr_adm_rel_hist")
 public class HistoricalAddressAdmRelation extends GARRelation {
 
 }

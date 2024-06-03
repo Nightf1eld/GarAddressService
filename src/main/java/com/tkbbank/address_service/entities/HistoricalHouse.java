@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "s_house_hist", indexes = {})
+@Table(name = "s_house_hist")
 public class HistoricalHouse extends GARHouse {
 
 }
