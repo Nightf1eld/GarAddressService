@@ -79,11 +79,4 @@ public class AddressController {
                 .contentType(MediaType.valueOf("application/json;charset=utf-8"))
                 .body(addressService.getSuggestions(request.getRegionObjectId(), request.getNamePart()).stream().map(address -> modelMapper.map(address, GARIdxAddressDto.class)).collect(Collectors.toList()));
     }
-
-    @PostMapping(path = "/suggestionsAll", consumes = "application/json;charset=utf-8")
-    public ResponseEntity<List<GARIdxAddressDto>> getSuggestionsAll(@RequestBody SuggestionRequest request) {
-        return ResponseEntity.ok()
-                .contentType(MediaType.valueOf("application/json;charset=utf-8"))
-                .body(addressService.getSuggestions(request.getRegionObjectId()).stream().map(address -> modelMapper.map(address, GARIdxAddressDto.class)).collect(Collectors.toList()));
-    }
 }

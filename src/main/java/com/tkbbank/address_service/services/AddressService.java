@@ -14,7 +14,7 @@ import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -40,33 +40,23 @@ public class AddressService {
             SearchSession searchSession = Search.session(entityManager);
 
             suggestions = searchSession.search(IdxAddressAdm.class)
-                    .where(f -> f.and(
-                            f.match()
+                    .where(f -> f.bool()
+                            .must(f.match()
                                     .field("regionObjectId")
-                                    .matching(regionObjectId),
-                            f.match()
-                                    .field("edgeNGramMin3Max30_fullName")
-                                    .matching(namePart)
-                    ))
-                    .fetchHits(10);
-        }
-
-        return suggestions;
-    }
-
-    public List<? extends GARIdxAddress> getSuggestions(Long regionObjectId) {
-
-        List<? extends GARIdxAddress> suggestions;
-
-        try (EntityManager entityManager = entityManagerFactory.createEntityManager()) {
-            SearchSession searchSession = Search.session(entityManager);
-
-            suggestions = searchSession.search(IdxAddressAdm.class)
-                    .where(f -> f.match()
-                            .field("regionObjectId")
-                            .matching(regionObjectId)
+                                    .matching(regionObjectId))
+                            .should(f.match()
+                                    .field("whitespace_edgeNGramMin3Max30_fullName").boost(3.0f)
+                                    .field("keyword_name").boost(2.0f)
+                                    .matching(namePart))
+                            .should(f.bool()
+                                    .should(f.match()
+                                            .field("keyword_edgeNGramMin3Max30_name")
+                                            .matching(namePart))
+                                    .must(f.match()
+                                            .field("type")
+                                            .matching("ул")))
                     )
-                    .fetchAllHits();
+                    .fetchHits(20);
         }
 
         return suggestions;
