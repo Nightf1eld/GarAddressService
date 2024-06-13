@@ -5,7 +5,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import lombok.*;
-import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 
@@ -33,19 +32,17 @@ public class GARIdxAddress {
     @Column(name = "object_guid")
     private UUID guid;
 
-    @FullTextField(name = "keyword_name", analyzer = "keyword_analyzer")
-    @FullTextField(name = "keyword_edgeNGramMin3Max30_name", analyzer = "keyword_edgeNGramMin3Max30_analyzer")
     @Column(name = "name", length = 500)
     private String name;
 
-    @GenericField(sortable = Sortable.YES)
+    @GenericField
     @Column(name = "type_cd", length = 50)
     private String type;
 
-    @GenericField(sortable = Sortable.YES)
     @Column(name = "level_cd")
     private Integer level;
 
+    @FullTextField(name = "whitespace_fullName", analyzer = "whitespace_analyzer")
     @FullTextField(name = "whitespace_edgeNGramMin3Max30_fullName", analyzer = "whitespace_edgeNGramMin3Max30_analyzer")
     @Column(name = "full_name", length = 2000)
     private String fullName;
@@ -65,4 +62,8 @@ public class GARIdxAddress {
 
     @Column(name = "rel_active_flg")
     private Boolean isActiveRel;
+
+    @GenericField
+    @Column(name = "hierarchy_level_cd")
+    private Integer hierarchyLevel;
 }

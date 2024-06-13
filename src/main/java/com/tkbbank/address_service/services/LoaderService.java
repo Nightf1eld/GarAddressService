@@ -327,7 +327,7 @@ public class LoaderService {
                             }
                             case UPDATE -> {
                                 log.info("Update: " + table.name());
-                                garIdxAddressRepository.idxAddressUpdate(table.name(), batchSize);
+                                garIdxAddressRepository.idxAddressUpdate(table.name());
                             }
                         }
                     };

@@ -12,5 +12,5 @@ public interface GARIdxAddressRepository extends JpaRepository<GARIdxAddress, UU
     void idxAddressInsert(String isActive, String isActual, String joinTable, String insertTable, Integer batchSize);
 
     @Procedure(procedureName = "ADDRESS_SERVICE_PKG.S_ADDR_IDX_UPD")
-    void idxAddressUpdate(String updateTable, Integer batchSize);
+    void idxAddressUpdate(String updateTable);
 }
